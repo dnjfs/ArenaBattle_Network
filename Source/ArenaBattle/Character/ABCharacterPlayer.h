@@ -21,6 +21,10 @@ public:
 
 protected:
 	virtual void BeginPlay() override;
+	virtual void PossessedBy(AController* NewController) override;
+	virtual void OnRep_Owner() override;
+	virtual void PostNetInit() override;
+
 	virtual void SetDead() override;
 
 public:
