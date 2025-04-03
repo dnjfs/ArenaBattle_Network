@@ -3,6 +3,7 @@
 
 #include "Prop/ABFountain.h"
 #include "Components/StaticMeshComponent.h"
+#include "Components/PointLightComponent.h"
 #include "Net/UnrealNetwork.h"
 #include "ArenaBattle.h"
 
@@ -34,6 +35,7 @@ AABFountain::AABFountain()
 	bReplicates = true;
 	NetUpdateFrequency = 1.f;
 	NetCullDistanceSquared = 4000000.f; // 2000 * 2000 = 20미터
+	//NetDormancy = DORM_Initial;
 }
 
 // Called when the game starts or when spawned
@@ -41,16 +43,29 @@ void AABFountain::BeginPlay()
 {
 	Super::BeginPlay();
 
-	//if (HasAuthority())
-	//{
-	//	FTimerHandle Handle;
-	//	GetWorld()->GetTimerManager().SetTimer(Handle, FTimerDelegate::CreateLambda([&]
-	//		{
-	//			// 값이 변경될 때만 리플리케이션
-	//			ServerRotationYaw += 1.0f;
-	//		}
-	//	), 1.0f, true, 0.0f);
-	//}
+	if (HasAuthority())
+	{
+		FTimerHandle Handle;
+		GetWorld()->GetTimerManager().SetTimer(Handle, FTimerDelegate::CreateLambda([&]
+			{
+				// 4 * 1000 = 4000Byte로 TotalNetBandWidth를 넘기면 [LogNetTraffic] Saturated 발생
+				//BigData.Init(BigDataElement, 1000);
+
+				// 값이 변경될 때만 리플리케이션
+				//BigDataElement += 1.0f;
+
+				ServerLightColor = FLinearColor(FMath::RandRange(0.0f, 1.0f), FMath::RandRange(0.0f, 1.0f), FMath::RandRange(0.0f, 1.0f), 1.0f);
+				OnRep_ServerLightColor();
+			}
+		), 1.0f, true, 0.0f);
+
+		FTimerHandle Handle2;
+		GetWorld()->GetTimerManager().SetTimer(Handle2, FTimerDelegate::CreateLambda([&]
+			{
+				//FlushNetDormancy(); // 휴면 상태 해지
+			}
+		), 10.0f, false, -1.0f); // Loop는 false, Delay가 0이면 바로 실행하는데 마이너스면 10초 뒤에 실행
+	}
 }
 
 // Called every frame
@@ -86,6 +101,8 @@ void AABFountain::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifet
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
 	DOREPLIFETIME(AABFountain, ServerRotationYaw);
+	//DOREPLIFETIME(AABFountain, BigData);
+	DOREPLIFETIME(AABFountain, ServerLightColor);
 }
 
 void AABFountain::OnActorChannelOpen(FInBunch& InBunch, UNetConnection* Connection)
@@ -108,9 +125,15 @@ bool AABFountain::IsNetRelevantFor(const AActor* RealViewer, const AActor* ViewT
 	return NetRelevantResult;
 }
 
+void AABFountain::PreReplication(IRepChangedPropertyTracker& ChangedPropertyTracker)
+{
+	AB_LOG(LogABNetwork, Log, TEXT("%s"), TEXT("Begin"));
+	Super::PreReplication(ChangedPropertyTracker);
+}
+
 void AABFountain::OnRep_ServerRotationYaw()
 {
-	AB_LOG(LogABNetwork, Log, TEXT("Yaw : %f"), ServerRotationYaw);
+	//AB_LOG(LogABNetwork, Log, TEXT("Yaw : %f"), ServerRotationYaw);
 
 	FRotator NewRotator = RootComponent->GetComponentRotation();
 	NewRotator.Yaw = ServerRotationYaw;
@@ -120,3 +143,16 @@ void AABFountain::OnRep_ServerRotationYaw()
 	ClientTimeSinceUpdate = 0.f;
 }
 
+void AABFountain::OnRep_ServerLightColor()
+{
+	if (!HasAuthority())
+	{
+		AB_LOG(LogABNetwork, Log, TEXT("LightColor : %s"), *ServerLightColor.ToString());
+	}
+
+	UPointLightComponent* PointLight = Cast<UPointLightComponent>(GetComponentByClass(UPointLightComponent::StaticClass()));
+	if (PointLight)
+	{
+		PointLight->SetLightColor(ServerLightColor);
+	}
+}
