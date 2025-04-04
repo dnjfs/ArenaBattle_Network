@@ -34,8 +34,8 @@ AABFountain::AABFountain()
 	}
 
 	bReplicates = true;
-	NetUpdateFrequency = 1.f;
-	NetCullDistanceSquared = 4000000.f; // 2000 * 2000 = 20미터
+	SetNetUpdateFrequency(1.f);
+	SetNetCullDistanceSquared(4000000.f);  // 2000 * 2000 = 20미터
 	//NetDormancy = DORM_Initial;
 }
 
