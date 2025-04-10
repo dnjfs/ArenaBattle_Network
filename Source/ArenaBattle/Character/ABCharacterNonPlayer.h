@@ -4,7 +4,6 @@
 
 #include "CoreMinimal.h"
 #include "Character/ABCharacterBase.h"
-#include "Engine/StreamableManager.h"
 #include "Interface/ABCharacterAIInterface.h"
 #include "ABCharacterNonPlayer.generated.h"
 
@@ -24,12 +23,9 @@ protected:
 
 protected:
 	void SetDead() override;
-	void NPCMeshLoadCompleted();
 
 	UPROPERTY(config)
 	TArray<FSoftObjectPath> NPCMeshes;
-	
-	TSharedPtr<FStreamableHandle> NPCMeshHandle;
 
 // AI Section
 protected:

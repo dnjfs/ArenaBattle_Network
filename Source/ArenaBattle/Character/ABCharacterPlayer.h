@@ -11,7 +11,7 @@
 /**
  * 
  */
-UCLASS()
+UCLASS(config=ArenaBattle)
 class ARENABATTLE_API AABCharacterPlayer : public AABCharacterBase, public IABCharacterHUDInterface
 {
 	GENERATED_BODY()
@@ -113,7 +113,26 @@ protected:
 protected:
 	virtual void SetupHUDWidget(class UABHUDWidget* InHUDWidget) override;
 
-	// Teleport Section
+// Teleport Section
 protected:
 	void Teleport();
+
+// PvP Section
+public:
+	void ResetPlayer();
+	void ResetAttack();
+
+	FTimerHandle AttackTimerHandle;
+	FTimerHandle DeadTimerHandle;
+
+protected:
+	virtual float TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEvent, class AController* EventInstigator, AActor* DamageCauser) override;
+
+// Character Mesh Section
+	UPROPERTY(config)
+	TArray<FSoftObjectPath> PlayerMeshes;
+
+	void UpdateMeshFromPlayerState();
+
+	virtual void OnRep_PlayerState();
 };
